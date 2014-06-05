@@ -7,10 +7,11 @@ define domean::base (
   $user = 'web',
   $port = 3000,
   $app_name = $title,
+  $app_script = 'server.js',
   $content = 'MEAN',
 
   # install directory
-  $target_dir = '/var/www/html',
+  $target_dir = '/var/www/node',
 
   $firewall = true,
   $monitor = true,
@@ -39,12 +40,22 @@ define domean::base (
       check_command => "check_http_port_url_content!${::ipaddress}!${port}!/!'${content}'",
     }
     @nagios::service { "int:process_node-domean-${::fqdn}":
-      check_command => "check_procs!1:!1:!node",
+      check_command => "check_nrpe_procs_node",
     }
   }
 
   # if we've got a message of the day, include
   @domotd::register { "MEAN(${port})" : }
+
+  # check that target dir exists
+  if ! defined(File["${target_dir}"]) {
+    docommon::stickydir { "${target_dir}":
+      user => $user,
+      group => $group,
+      context => 'httpd_sys_content_t',
+      before => [Exec["domean-base-create-${title}"]],
+    }
+  }
 
   # create and inflate node/mean example
   exec { "domean-base-create-${title}" :
@@ -52,6 +63,14 @@ define domean::base (
     command => "mean init ${app_name} && cd ${app_name} && npm install",
     user => $user,
     cwd => "${target_dir}",
+  }
+
+  # create service and start on machine startup
+  donodejs::foreverservice { "donodejs-base-service-${title}":
+    app_name => $app_name,
+    app_script => $app_script,
+    target_dir => $target_dir,
+    require => [Exec["domean-base-create-${title}"]],
   }
 
   # create symlink from our home folder
