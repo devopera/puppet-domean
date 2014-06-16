@@ -6,6 +6,7 @@ define domean::base (
 
   $user = 'web',
   $port = 3000,
+  $port_livereload = 35729,
   $app_name = $title,
   $app_script = 'server.js',
   $content = 'MEAN',
@@ -30,6 +31,13 @@ define domean::base (
     @docommon::fireport { "domean-node-server-${port}":
       port => $port,
       protocol => 'tcp',
+    }
+    if ($port_livereload) {
+      @docommon::fireport { "domean-node-server-livereload-${port_livereload}":
+        port => $port_livereload,
+        protocol => 'tcp',
+      }
+      @domotd::register { "LiveReload(${port_livereload})" : }
     }
   }
 
