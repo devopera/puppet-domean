@@ -16,8 +16,14 @@ class domean (
   if ! defined(Class['donodejs']) {
     class { 'donodejs' :
       user => $user,
-      require => [Class['docommon'], Class['dozendserver'], Class['dorepos']],
+      require => [Class['docommon'], Class['dorepos']],
       before => [Anchor['domean-ready']],
+    }
+    # if we're installing apache, do it before node
+    if defined('doapache') {
+      Class <| title == 'donodejs' |> {
+        require => Class['doapache'],
+      }
     }
   }
   if ! defined(Class['domongodb']) {
